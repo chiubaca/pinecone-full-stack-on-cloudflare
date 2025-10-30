@@ -1,16 +1,49 @@
 import { DurableObject } from 'cloudflare:workers';
+import moment from 'moment';
 
-export class EvaluationScheduler extends DurableObject {
-	count: number = 0;
+interface ClickData {
+	accountId: string;
+	linkId: string;
+	destinationUrl: string;
+	destinationCountryCode: string;
+}
+
+export class EvaluationScheduler extends DurableObject<Env> {
+	clickData: ClickData | undefined;
+
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 	}
-	async increment() {
-		this.count++;
-		await this.ctx.storage.put('count', this.count);
+
+	async collectLinkClick(accountId: string, linkId: string, destinationUrl: string, destinationCountryCode: string) {
+		this.clickData = {
+			accountId,
+			linkId,
+			destinationUrl,
+			destinationCountryCode,
+		};
+		await this.ctx.storage.put('click_data', this.clickData);
+
+		const alarm = await this.ctx.storage.getAlarm();
+		if (!alarm) {
+			const oneDay = moment().add(10, 'seconds').valueOf();
+			await this.ctx.storage.setAlarm(oneDay);
+		}
 	}
 
-	async getCount() {
-		return this.count;
+	async alarm() {
+		console.log('Evaluation scheduler alarm triggered');
+
+		const clickData = this.clickData;
+
+		if (!clickData) throw new Error('Click data not set');
+
+		await this.env.DESTINATION_EVALUATION_WORKFLOW.create({
+			params: {
+				linkId: clickData.linkId,
+				accountId: clickData.accountId,
+				destinationUrl: clickData.destinationUrl,
+			},
+		});
 	}
 }
