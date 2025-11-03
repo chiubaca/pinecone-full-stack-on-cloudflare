@@ -14,22 +14,22 @@ export const Route = createFileRoute("/app/_authed/")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.prefetchQuery(
-        context.trpc.links.activeLinks.queryOptions(),
+        context.trpc.links.activeLinks.queryOptions()
       ),
       context.queryClient.prefetchQuery(
-        context.trpc.links.totalLinkClickLastHour.queryOptions(),
+        context.trpc.links.totalLinkClickLastHour.queryOptions()
       ),
       context.queryClient.prefetchQuery(
-        context.trpc.links.last24HourClicks.queryOptions(),
+        context.trpc.links.last24HourClicks.queryOptions()
       ),
       context.queryClient.prefetchQuery(
-        context.trpc.links.last30DaysClicks.queryOptions(),
+        context.trpc.links.last30DaysClicks.queryOptions()
       ),
       context.queryClient.prefetchQuery(
-        context.trpc.evaluations.problematicDestinations.queryOptions(),
+        context.trpc.evaluations.problematicDestinations.queryOptions()
       ),
       context.queryClient.prefetchQuery(
-        context.trpc.links.clicksByCountry.queryOptions(),
+        context.trpc.links.clicksByCountry.queryOptions()
       ),
     ]);
   },
@@ -37,6 +37,10 @@ export const Route = createFileRoute("/app/_authed/")({
 
 function RouteComponent() {
   const { isConnected } = useClickSocket();
+  console.log(
+    "🔍 ~ RouteComponent ~ apps/user-application/src/routes/app/_authed/index.tsx:39 ~ isConnected:",
+    isConnected
+  );
 
   return (
     <div className="flex w-full min-w-0">
@@ -46,7 +50,9 @@ function RouteComponent() {
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <div className="flex items-center gap-2">
               <div
-                className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+                className={`w-2 h-2 rounded-full ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}
               />
               <span className="text-sm text-muted-foreground">
                 {isConnected ? "Connected" : "Disconnected"}

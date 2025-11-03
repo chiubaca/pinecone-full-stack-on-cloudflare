@@ -1,9 +1,27 @@
 import { cloudflareInfoSchema } from '@repo/data-ops/zod-schema/links';
 import { Hono } from 'hono';
-import { getDestinationForCountry, getRoutingDestinations } from '../helpers/route-ops.js';
+import { captureLinkClickInBackground, getDestinationForCountry, getRoutingDestinations } from '../helpers/route-ops.js';
 import type { LinkClickMessageType } from '@repo/data-ops/zod-schema/queue';
 
 export const App = new Hono<{ Bindings: Env }>();
+
+App.get('/ws/click-socket', async (c) => {
+	const upgradeHeader = c.req.header('Upgrade');
+	if (!upgradeHeader || upgradeHeader !== 'websocket') {
+		return c.text('Expected Upgrade: websocket', 426);
+	}
+
+	// const accountId = c.req.header('account-id');
+	const accountId = '1234567890';
+	if (!accountId) return c.text('No Headers', 404);
+	const doId = c.env.LINK_CLICK_TRACKER_DO.idFromName(accountId);
+	const stub = c.env.LINK_CLICK_TRACKER_DO.get(doId);
+	return await stub.fetch(c.req.raw);
+});
+
+App.get('/test/test', (c) => {
+	return c.text('sup');
+});
 
 App.get('/:id', async (c) => {
 	const { id } = c.req.param();
@@ -37,4 +55,11 @@ App.get('/:id', async (c) => {
 	};
 	c.executionCtx.waitUntil(c.env.QUEUE.send(queueMessage));
 	return c.redirect(destination);
+});
+
+App.get('/link-click/:accountId', async (c) => {
+	const accountId = c.req.param('accountId');
+	const doId = c.env.LINK_CLICK_TRACKER_DO.idFromName(accountId);
+	const stub = c.env.LINK_CLICK_TRACKER_DO.get(doId);
+	return await stub.fetch(c.req.raw);
 });
