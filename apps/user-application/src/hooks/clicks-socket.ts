@@ -17,7 +17,7 @@ export function useClickSocket() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const socket = new WebSocket(
         // `${protocol}//${import.meta.env.VITE_BASE_HOST}/click-socket`
-        `ws://localhost:8787/ws/click-socket`
+        `wss://data-service.chiubaca.workers.dev/ws/click-socket`
       );
 
       socket.onopen = () => {
@@ -27,7 +27,7 @@ export function useClickSocket() {
 
       socket.onmessage = (event) => {
         // Handle incoming messages
-        console.log(event);
+        console.log("EVENT!!", event);
         const data = durableObjectGeoClickArraySchema.parse(
           JSON.parse(event.data)
         );

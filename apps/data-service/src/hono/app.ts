@@ -24,36 +24,34 @@ App.get('/test/test', (c) => {
 });
 
 App.get('/:id', async (c) => {
-	const { id } = c.req.param();
-	const linkData = await getRoutingDestinations(c.env, id);
+	const id = c.req.param('id');
 
-	if (!linkData) {
-		return c.json({ error: 'Link not found' }, 404);
+	const linkInfo = await getRoutingDestinations(c.env, id);
+	if (!linkInfo) {
+		return c.text('Destination not found', 404);
 	}
 
 	const cfHeader = cloudflareInfoSchema.safeParse(c.req.raw.cf);
-
 	if (!cfHeader.success) {
-		return c.text('bad cf headers', 400);
+		return c.text('Invalid Cloudflare headers', 400);
 	}
 
 	const headers = cfHeader.data;
-
-	const destination = getDestinationForCountry(linkData, headers.country);
+	const destination = getDestinationForCountry(linkInfo, headers.country);
 
 	const queueMessage: LinkClickMessageType = {
 		type: 'LINK_CLICK',
 		data: {
-			id,
+			id: id,
 			country: headers.country,
 			destination: destination,
-			accountId: linkData.accountId,
+			accountId: linkInfo.accountId,
 			latitude: headers.latitude,
 			longitude: headers.longitude,
 			timestamp: new Date().toISOString(),
 		},
 	};
-	c.executionCtx.waitUntil(c.env.QUEUE.send(queueMessage));
+	c.executionCtx.waitUntil(captureLinkClickInBackground(c.env, queueMessage));
 	return c.redirect(destination);
 });
 
